@@ -1,0 +1,9 @@
+---
+title: "Welcome to TH's Blog"
+format: html
+---
+
+Hi, this is my technical note blog ✨  
+Browse the posts from the navigation bar or below:
+
+- [Elman Network 推導](posts/elman.qmd)
