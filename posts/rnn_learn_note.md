@@ -1,0 +1,65 @@
+$X_t\in \mathbb{R}^n,\, M_t\in \mathbb{R}^m,\, Y_t\in \mathbb{R}^k, \,t\in\{0,1,...,T\}$
+
+$W_X\in \mathbb{R}^{m\times n},\, W_M\in \mathbb{R}^{m\times m},\, W_g\in \mathbb{R}^{k\times m},\, b_f\in \mathbb{R}^{m},\, b_g\in \mathbb{R}^{k}$
+
+$f:\mathbb{R}^{n+m}\rightarrow\mathbb{R}^m$, $f(X_t,M_{t-1})=ReLU(W_{X}X_t+W_{M}M_t+b_f)$
+
+$M_t=f(X_t, M_{t-1})$
+
+$g:\mathbb{R}^m \rightarrow \mathbb{R}^{k}$, $g(M_t)=W_{g}M_t+b_g$
+
+$Y_t=g(M_t)$
+
+$ReLU(x)=max(0,x)$
+
+$X_1$
+
+$X_2$
+
+$Y_1$
+
+$Y_2$
+
+$M_0$
+
+$M_2$
+
+$Z_1$
+
+$Z_2$
+
+$n=3,\,m=2,\,k=1,\,T=2$
+
+$X_1 = \begin{bmatrix} 2  \\ 1 \\ 1 \end{bmatrix},\, X_2 = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\,M_0 = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$
+
+$W_X = \begin{bmatrix} 1 & 1 &1  \\ 1 & 1 & 1\end{bmatrix},\, W_M = \begin{bmatrix} 1 &1  \\ 1 & 1\end{bmatrix},\, W_g = \begin{bmatrix} 1 &1 \end{bmatrix},\, b_f = \begin{bmatrix} 0 \\ 0\end{bmatrix},\, b_g = 0$
+
+
+
+$$
+\begin{aligned}
+M_1 &= f(X_1, M_0) \\
+    &= \text{ReLU}(W_X X_1 + W_M M_0 + b_f) \\
+    &= \text{ReLU}\left(
+        \begin{bmatrix}4\\4\end{bmatrix}
+        + \begin{bmatrix}2\\2\end{bmatrix}
+        + \begin{bmatrix}0\\0\end{bmatrix}
+    \right) \\
+    &= ReLU(\begin{bmatrix}6\\6\end{bmatrix})\\
+    &= \begin{bmatrix}6\\6\end{bmatrix}
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+Y_1 &= g(M_1) \\
+    &= W_g M_1 + b_g \\
+    &= 12
+\end{aligned}
+$$
+
+
+
+
+
+![Screenshot 2025-05-02 at 3.05.57 PM](https://hackmd.io/_uploads/SJR6q8Mggx.png)
