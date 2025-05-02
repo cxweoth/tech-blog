@@ -2,24 +2,47 @@ project:
   type: website
 
 website:
-  title: "TH's Blog"
+  title: "TH 的技術部落格"
+  site-url: "https://cxweoth.github.io/tech-blog/"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - href: posts/elman.qmd
-        text: Elman 推導
+      - text: 首頁
+        href: index.qmd
+      - text: 文章
+        href: posts/index.qmd
+      - text: 關於
+        href: about.qmd
+    right:
+      - icon: github
+        href: https://github.com/cxweoth
+      - icon: linkedin
+        href: https://www.linkedin.com/in/tsung-hsuan-hung-79125190/
 
 format:
   html:
-    theme: cosmo
-    css: styles.css
+    theme: 
+      light: cosmo
+      dark: darkly
     toc: true
-    code-copy: true
+    toc-depth: 3
+    toc-title: "目錄"
     highlight-style: atom-one-dark
-    include-in-header: 
-      text: |
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    code-fold: true
+    code-tools: false
+    number-sections: true
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+    fig-format: retina
+    fig-dpi: 96
+    fig-cap-location: bottom
+    link-external-icon: true
+    link-external-newwindow: true
+    self-contained: true
+    css: styles.css
+
+execute:
+  freeze: auto
+  cache: true
+  warning: false
+  error: false

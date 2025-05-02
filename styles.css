@@ -1,0 +1,14 @@
+/* 增加字型、收窄寬度 */
+body {
+    font-family: "Noto Sans TC", sans-serif;
+    max-width: 860px;
+    margin: auto;
+    font-size: 17px;
+  }
+  
+  /* 文章內部標題留白 */
+  h2, h3 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+  

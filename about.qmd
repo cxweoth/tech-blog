@@ -1,0 +1,15 @@
+---
+title: 關於
+format: html
+---
+
+# 關於我
+
+您好，我是 TH！
+
+這裡是我的技術部落格，主要分享程式設計、AI、機器學習與個人學習筆記。
+
+- GitHub: [cxweoth](https://github.com/cxweoth)
+- LinkedIn: [Tsung-Hsuan Hung](https://www.linkedin.com/in/tsung-hsuan-hung-79125190/)
+
+歡迎交流與指教！

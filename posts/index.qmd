@@ -1,0 +1,10 @@
+---
+title: 所有文章列表
+listing: 
+  contents: .
+  sort: "date desc"
+  type: default
+  fields: [title, date, description]
+---
+
+以下是我所有的文章：
