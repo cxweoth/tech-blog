@@ -1,0 +1,16 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Welcome to TH’s Blog",
+    "section": "",
+    "text": "Hi, this is my technical note blog ✨\nBrowse the posts from the navigation bar or below:\n\nElman Network 推導"
+  },
+  {
+    "objectID": "posts/elman.html",
+    "href": "posts/elman.html",
+    "title": "Elman Network 推導",
+    "section": "",
+    "text": "\\(X_t\\in \\mathbb{R}^n,\\, M_t\\in \\mathbb{R}^m,\\, Y_t\\in \\mathbb{R}^k, \\,t\\in\\{0,1,...,T\\}\\)\n\\(W_X\\in \\mathbb{R}^{m\\times n},\\, W_M\\in \\mathbb{R}^{m\\times m},\\, W_g\\in \\mathbb{R}^{k\\times m},\\, b_f\\in \\mathbb{R}^{m},\\, b_g\\in \\mathbb{R}^{k}\\)\n\\(f:\\mathbb{R}^{n+m}\\rightarrow\\mathbb{R}^m\\), \\(f(X_t,M_{t-1})=\\text{ReLU}(W_{X}X_t+W_{M}M_{t-1}+b_f)\\)\n\\(M_t=f(X_t, M_{t-1})\\)\n\\(g:\\mathbb{R}^m \\rightarrow \\mathbb{R}^{k}\\), \\(g(M_t)=W_{g}M_t+b_g\\)\n\\(Y_t=g(M_t)\\)\n\\(\\text{ReLU}(x)=\\max(0,x)\\)\n\\(n=3,\\,m=2,\\,k=1,\\,T=2\\)\n\\(X_1 = \\begin{bmatrix} 2  \\\\ 1 \\\\ 1 \\end{bmatrix},\\, X_2 = \\begin{bmatrix} 1 \\\\ 1 \\\\ 1 \\end{bmatrix},\\,M_0 = \\begin{bmatrix} 1 \\\\ 1 \\end{bmatrix}\\)\n\\(W_X = \\begin{bmatrix} 1 & 1 &1  \\\\ 1 & 1 & 1\\end{bmatrix},\\, W_M = \\begin{bmatrix} 1 &1  \\\\ 1 & 1\\end{bmatrix},\\, W_g = \\begin{bmatrix} 1 &1 \\end{bmatrix},\\, b_f = \\begin{bmatrix} 0 \\\\ 0\\end{bmatrix},\\, b_g = 0\\)\n\\[\n\\begin{aligned}\nM_1 &= f(X_1, M_0) \\\\\n    &= \\text{ReLU}(W_X X_1 + W_M M_0 + b_f) \\\\\n    &= \\text{ReLU}\\left(\n        \\begin{bmatrix}4\\\\4\\end{bmatrix}\n        + \\begin{bmatrix}2\\\\2\\end{bmatrix}\n        + \\begin{bmatrix}0\\\\0\\end{bmatrix}\n    \\right) \\\\\n    &= \\text{ReLU}(\\begin{bmatrix}6\\\\6\\end{bmatrix})\\\\\n    &= \\begin{bmatrix}6\\\\6\\end{bmatrix}\n\\end{aligned}\n\\]\n\\[\n\\begin{aligned}\nY_1 &= g(M_1) \\\\\n    &= W_g M_1 + b_g \\\\\n    &= 12\n\\end{aligned}\n\\]\n\n\n\nElman Network 結構圖"
+  }
+]
