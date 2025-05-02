@@ -17,5 +17,22 @@
 <body>
   <div id="app">Loading...</div>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+  <!-- KaTeX 渲染設定 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
+  <script>
+    window.$docsify = window.$docsify || {};
+    window.$docsify.plugins = (window.$docsify.plugins || []).concat(function(hook) {
+      hook.doneEach(function() {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false}
+          ]
+        });
+      });
+    });
+  </script>
 </body>
 </html>
