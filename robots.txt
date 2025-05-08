@@ -1,1 +1,1 @@
-Sitemap: https://cxweoth.github.io/th-blog/sitemap.xml
+Sitemap: https://cxweoth.github.io/tech-blog/sitemap.xml
