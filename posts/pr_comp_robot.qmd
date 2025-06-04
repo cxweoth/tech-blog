@@ -282,7 +282,7 @@ $m_{0,t}^{net}=\text{SoftMax}(m_t)$
 
 我對於本體感知理解的 flow 圖如下：
 
-![image](/images/comp_propreoceptive.png.png)
+![image](/images/comp_propreoceptive.png)
 
 ---
 
