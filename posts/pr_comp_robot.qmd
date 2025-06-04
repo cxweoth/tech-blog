@@ -1,0 +1,428 @@
+---
+title: "論文閱讀筆記: Development of Compositionality and Generalization through Interactive Learning of Language and Action of Robots"
+date: 2025-05-15
+format: html
+tags: [machine-learning, robot, paper-reading]
+---
+
+# 論文閱讀筆記: Development of Compositionality and Generalization through Interactive Learning of Language and Action of Robots
+## 1. 論文簡介
+**論文題目**: Development of Compositionality and Generalization through Interactive Learning of Language and Action of Robots
+**論文連結**: [link](https://arxiv.org/pdf/2403.19995)
+**論文分類**: 機器學習、機器人、Interactive Learning、Compositionality(Psychology)
+**論文簡易介紹**: 這一篇論文主要是要探討機器人是否能像人類一樣有 compositionality 的能力；所謂的 compositionality 是可以透過曾經學習到的能力來組合出可以克服沒學習過的任務目標。這是一篇關於 “認知” 的論文，它論文裡雖然有提到做 “預測”，但是這裡的 “預測” 是代表著機器人對於現在狀態的 “認知”。這裡的認知就很像在教小孩學爬行一樣，除了語言給予小孩方向，小孩本身也會持續的做動他的身體及視覺不斷地去修正他的錯誤，所以認知這件事都是以當下為狀態輸入的，並且小孩的腦中會期待他做出來的結果跟真正的結果差距越小越好。
+
+## 我的筆記
+### 簡介
+這篇論文將感知模型分成三大系統：
+1. Lingustic system：語言系統，這邊的語言系統是語意上的 **“指令”**；語言系統主要用到的模型是 LSTM
+2. Proprioception system：本體感知系統，這裡用到的是機器人關節的 **“角度”**，那參考人的感受，“角度” 本身會透過 Softmax 才輸入到本體感知系統的，畢竟人不會對於自己的關節有著絕對的角度感受，而是一種相對的感受；這邊主要用到的模型是 multi-layer 的 LSTM，這邊論文中是 3 層的 LSTM
+3. Visual system：視覺系統，主要是由 attention 來做的模型，視覺認知主要是 **“attention 還原出來的影像”**；那這個模型也是參考人的感受來做的，通常人會專注於自己想要理解的事物，其他比較沒在意的事物也比較以較模糊的方式輸入進我們自己的腦中；視覺系統本身有兩個圖像記憶，其中一個記憶是 $64\times 64$ 像素的圖像記憶，另一個則是 $40\times 40$ 的圖像記憶，這兩個圖像記憶會幫助視覺認知；這邊主要用到的模型是 multi-layer 的 ConvLSTM (Convolutional LSTM)，這邊論文中是 3 層的 ConvLSTM，ConvLSTM 是圖像上使用的 LSTM
+
+那這三個系統中的 2,3 本體感知系統及視覺系統會透過 associative layer 將其連結起來，並且 associative layer 會產生出一個 parametric bias 來與 Lingustic system 做連結；，示意圖如下：
+
+![image](/images/comp_sys.png)
+
+在看這個論文時，有兩件事很困擾我：
+1. **這裡討論的是 “認知” 而不是 “預測”**，所以在輸入變數到模型時，它 “不是用上一個時間段” 的圖像、本體狀態來做輸入，它 “用現在這個時間段” 的圖像、本體狀態來做輸入；這個部分讓我一開始非常的困惑，因為我以為所謂的預測是用上個時間段預測下個時間段。再次強調，這邊是討論 “認知” 不是 “預測”。
+2. **它的訓練階段有兩個 phases**，我在看的時候有點混亂... 但搞懂後就好多了！這兩個 phases 會使用到不同的 loss functions，第一個階段就是一般的 training，那這個 training 主要是把每個系統中的 models 的參數定下來，但要特別注意並不包括 Parametric bias 喔！ (裡頭還有一個細節的 Sample 參數 $A$ 也不會在第一階段就定下來喔！)第二階段用到的 loss function 就是為了去根據當前的任務語意或者是本體及視覺系統的認知時間序列來去計算出適當的 Parametric bias 及 $A$ 來借此讓機器人給出 "語意認知" 或者是 "本體及視覺認知的時間序列"
+
+它主要有兩種互相影響的方向：
+1. "語意系統 -> 本體及視覺系統": 給定一個語意 “真實指令”，機器人在一開始還未認知到指令為何，它會帶著亂猜（初始變數 Parametric bias $\text{PB}$, sample parameter $A$）的 “想法” 開始作動，並產生一個機器人認為的 “認知指令” 及 “本體及視覺認知的序列”；然後根據 “真實指令” 與 “認知指令” 的差距來去改動 “想法” （改動變數 $\text{PB}$, $A$）；那上面的動作可以想做一次的腦內風暴，他會迭代多次的腦內風暴，最後會選出最適合的 “本體及視覺認知的序列” 來當作最後的 output (選法應該是透過 loss 最少的來選出序列)；**強調一下，這邊每次還是會輸入當下的本體及視覺當作輸入唷！強調 again，這邊是在討論認知！**；這種方法叫做 **Active Inference**。
+2. "本體及視覺系統 -> 語意系統"：這裡就反過來了，給定一個 “真實本體視覺序列”，機器人一開始未認知到序列為何，一樣帶著亂猜（初始變數 Parametric bias $\text{PB}$, sample parameter $A$）的 “想法” 開始作動，並產生一個機器人認為的 “本體視覺認知序列” 及 “認知指令”；然後根據 “真實本體視覺序列” 及 “本體視覺認知序列” 的差距去改動 “想法” （改動變數 $\text{PB}$, $A$）；上述講的過程可以當作一次腦內風暴，經過多次迭代後，最後會選出適合的 “認知指令” 當作最後的 output (選法應該一樣是透過 loss 最少的來選)
+
+再來下面的章節會進到非常底層，會去討論一下模型及數學式子。
+
+---
+
+### 圖像、本體、語意認知的計算及模型細節
+
+我想要將圖像認知 $\tilde{v}_t$、本體認知 $\tilde{m}_t$、語意認知 $\tilde{S}$ 分段討論，當然途中會用到彼此的一些 term，到時候會多加說明，在說明上我會從最後的計算慢慢剝開往前看，最後的結果我會在下面標注 1-level，然後慢慢剝開會慢慢增加他的 level 數字
+
+####  <span style="color:#3366cc"> 圖像認知 $\tilde{v}_t$ [1-level] </span>
+
+$\tilde{v}_t$ 是機器對於現在所看到的世界的認知，它的運作不只是跟圖像有關而已，它會跟 Proprioception, lingustic 都有關係，lingustic 那邊的關係是透過 associative system 連結的。
+
+這個數值的計算非常繁複，先來看最後的 output 為
+
+$\tilde{v}_t=g_t^{\text{pred}}\odot ATT^{-1}(v_t^{att},\alpha_t^{att})+(1-g_t^{\text{pred}})\odot \text{vwm}_t^{M1}$
+
+**數學符號解釋**
+$v_t^{att}$ 是機器人關注的區域，$\alpha_t^{att}$ 是 attention 的參數，那 $ATT^{-1}(v_t^{att},\alpha_t^{att})$ 在做的事情就是把聚焦的畫面轉回原本大小的圖；$\text{vwm}_t^{M1}$ 是 $64\times 64 \times 3$ 的視覺工作記憶，這就是機器腦中的記憶畫面，主要的記憶是從 attention 區域還原回來的圖像記憶，然後這個 $\text{vwm}_t^{M1}$ 會跟之前的記憶混合起來；$g_t^{\text{pred}}$ 是一個記憶與現在感知之間的平衡器，這個平衡器可以平衡記憶及現在的感知來生成最後的圖像認知。
+
+**High level 解釋**
+根據式子，$\tilde{v}_t$ 就是一個根據記憶及聚焦還原圖像後 combine 出的結果，這個圖像認知帶著聚焦及記憶的變數在裡頭。
+
+**模型筆記**
+這個模型很像人類在使用眼睛看事物時也是會專注於自己想看到的東西，並且也會根據自己的記憶來推論目前認知的畫面，跟人類對圖像的認知很像，這模型的式子描述得真好。
+
+##### <span style="color:#3366cc"> 關注圖像 $v_t^{att}$ [2-level] </span>
+
+先剝開到第二層的 $v_t^{att}$，這是機器人的關注圖像，式子展開為
+
+$v_t^{att}=g_t^{net}\odot v_t^{net}+(1-g_t^{net})\odot \text{TRAN}(\text{vwm}_t^{M2}, \alpha_t^{M2})$
+
+**數學符號解釋**
+$\text{vwm}_t^{M2}$ 是 $40\times 40 \times 3$ 的視覺工作記憶，是機器腦中的記憶畫面，這個記憶區是紀錄 attention 的主觀記憶畫面，$\text{TRAN}(\text{vwm}_t^{M2}, \alpha_t^{M2})$ ($\text{TRAN}$ 在論文示意圖中就是所謂的 affine transformation 那個區塊) 是之前時間點的 attention feature space，會從記憶抽取有用的資訊；$v_t^{net}$ 是現階段的感受認知圖像；最後根據 $g_t^{net}$ 這個權重來去平衡現階段的感受認知及記憶中的感受認知來決定現在的專注區域圖像。
+
+**High level 解釋**
+關注圖像會是機器人看到的圖案與腦中的關注圖像記憶混合而出來的
+
+**模型筆記**
+這個模型把人類對於 attention 這件事表達的很好，接收到感官認知後，人類的確會傾向從之前 attention 的記憶一起拉入考慮，並決定出現在要 attention 的圖像。
+
+##### <span style="color:#3366cc"> 視覺關注還原記憶區 $\text{vwm}_t^{M1}$ [2-level] </span>
+
+$\text{vwm}_t^{M1}$ 式子展開為
+
+$\text{vwm}_t^{M1}=(1-g_{t-1}^{M1})\odot\text{vmw}_{t-1}^{M1}+g_{t-1}^{M1}\odot\text{ATT}^{-1}(v_{t-1}^{att},\alpha_t^{att})$
+
+**數學符號解釋**
+$\text{vmw}_{t-1}^{M1}$ 是上一個時間點的視覺記憶，$v_{t-1}^{att}$ 是上一個時間點的關注區域圖像，$\text{ATT}^{-1}(v_{t-1}^{att},\alpha_t^{att})$ 會將關注區域圖像還原出整體圖像，$g_{t-1}^{M1}$ 是對於上個時間點的圖像記憶及上個時間點的關注還原圖像來做平衡。
+
+**High level 解釋**
+這個視覺記憶很直覺，它把上一個時間點的記憶跟上一個時間點的 attention 反推的圖像結合在一起，形成這個時間點的記憶，這會在上一個時間點就計算完。
+
+##### <span style="color:#3366cc"> 視覺關注記憶區 $\text{vwm}_t^{M2}$ [3-level] </span>
+$\text{vwm}_t^{M2}$ 的式子展開如下
+
+$\text{vwm}_t^{M2}=g_{t-1}^{M2}\odot\text{TRAN}(\text{vwm}_{t-1}^{M2},\alpha_{t-1}^{M2})+(1-g_{t-1}^{M2})\odot v_{t-1}^{att}$
+
+**數學符號解釋**
+$\text{TRAN}(\text{vwm}_{t-1}^{M2},\alpha_{t-1}^{M2})$ 會抽取有用的記憶，$v_{t-1}^{att}$ 為上一個時間點的關注區域，$g_{t-1}^{M2}$ 是平衡用的參數。
+
+**High level 解釋**
+抽取上個時間點的關注記憶跟上一個時間點的關注圖像結合在一起，形成現在這個時間點的記憶。
+
+##### <span style="color:#3366cc"> 圖像感知 $v_t^{net}$ [3-level] </span>
+
+這邊要強調是 “圖像感知”！不是 “圖像認知” 喔！在圖像系統這邊會有3層的 LSTM，那這裡的圖像感知是拿取3層中的 ConvLSTM 中的第1層感知來輸出，式子如下
+
+$v_t^{net}=\tanh(\text{Deconv}(v_{l=1,t}^{net}))$
+
+**數學符號解釋**
+$v_{l=1,t}^{net}$ 是第一層 ConvLSTM 的輸出，$\text{Deconv}$ 是一種 decode 方法，把訊號轉換成圖像。
+
+**High level 解釋**
+把訊號還原成圖像再做 $\tanh$ 做標準化
+
+**模型筆記**
+- 為何只用第一層的結果呢？為什麼不用最後一層的結果？
+    - Ans: 在 network 相較底層的地方會比較貼近原始感官的資訊，所以取這一層（這個解釋很有感覺），高層的結果會相對抽象，越往高層會越往語意那邊的意義去(因為在這個訓練過程會往語意靠攏)
+- 為何要使用 ConvLSTM 呢？
+    - Ans: ConvLSTM 全名為 Convolutional LSTM，光看到名字大概就知道為何要用 ConvLSTM 了，這邊要處理時間及圖像，所以會需要使用到 ConvLSTM 
+- 為何使用 $\tanh$?
+    - Ans: 正規化讓圖像處於 $[-1,1]$ 的區間內，人類視覺不是 one-hot（只有向量中的一個位置有 1 其他是 0）、不是離散 label，而是連續亮度/強度的神經訊號，$\tanh$ 提供類似 sigmoid 但是 centered around 0，更適合圖像表示，也方便跟真實圖像比較。
+
+##### <span style="color:#3366cc"> 關注還原圖像權重 $g_t^{M1}$(更新記憶用) [3-level]、$g_t^{pred}$(輸出認知用) [2-level] </span>
+
+$g_t^{M1}$、$g_t^{pred}$ 的式子如下
+
+$$
+\begin{bmatrix}
+g_t^{\text{M1}} \\
+g_t^{\text{pred}}
+\end{bmatrix} =
+\text{ATT}^{-1}\left(
+\text{Sig}\left(\text{Deconv}(v_{l=1,t}^{\text{net}})\right),
+\alpha_t^{\text{att}}
+\right)
+$$
+
+**數學符號解釋**
+先 $\text{Devonv}$ 得到圖像，再經過 sigmoidal activation function $\text{Sig}$ 做出信任權重，然後再跟 $\alpha_t^{att}$ 參數一起做 attention 的圖像還原來得到 $g_t^{M1}$ 來做工作記憶區的更新及 $g_t^{pred}$ 來做輸出認知用的權重。
+
+**High level 解釋**
+這是一種 mask，它根據現在的感知圖像來形成 mask，透過關注的 inverse 決定現在感知的影響力有多少
+
+##### <span style="color:#3366cc"> 關注圖像權重 $g_t^{M2}$ (更新記憶用) [4-level]、$g_t^{net}$(輸出 attention 用) [3-level] </span>
+
+$g_t^{M2}$、$g_t^{net}$ 的式子如下
+
+$$
+\begin{bmatrix}
+g_t^{M2}\\
+g_t^{net}
+\end{bmatrix} = \text{Sig}\left(\text{Deconv}(v_{l=1,t}^{\text{net}})\right)
+$$
+
+**數學符號解釋**
+這個比起 attention 還原只差一個 $\text{ATT}^{-1}$。
+
+**High level 解釋**
+這是對於專注區域所使用的 mask，透過感知圖像來形成 mask。
+
+##### <span style="color:#3366cc"> $v_{l=1, t}^{net}$ 第一層圖像感知 [用於多個 level] </span>
+
+式子如下
+
+$v_{l=1,t}^{net}=\text{ConvLSTM}(v_{0,t}^{net},m_{1,t-1}^{net},v_{2,t-1}^{net})$
+
+**數學符號解釋**
+第一層的 ConvLSTM 主要的 input 是 $v_{0,t}^{net}$，那 $v_{0,t}^{net}$ 的式子是 $v_{0,t}^{net}=ATT(v_t,\alpha_t^{att})$，$v_t$ 是現在的圖像，$ATT(v_t,\alpha_t^{att})$ 是經過注意力轉換後所產生的感知圖像；$m_{1,t-1}^{net}$ 是本體感覺上個時間點的第一層的本體感知；$v_{2,t-1}^{net}$ 則是圖像感知的第二層上個時間點的圖像；展開 $v_{2,t-1}^{net}$ 後會感受到與 associative layer 的關聯，這個部分會影響到語意系統如何影像感知的部分。
+
+**High level 解釋**
+這裡的模型主要輸入注意力感受，然後配合上個時間點的本體狀態來讓模型去感受本體狀態及圖像的關係，然後輸入上個時間點的第二層圖像認知是為了讓這次的感知能有上次的一些較抽象化的引導。根據現在的 attention 及過往的身體記憶和多一層抽象的認知來決定這次的視覺感知。
+
+##### <span style="color:#3366cc"> $v_{l, t}^{net}$ 圖像感知式子 [用於多個 level] </span>
+
+$v_{l, t}^{net}$ 式子展開如下
+    
+$$
+\mathbf{v}^{\text{net}}_{l,t} =
+\begin{cases}
+\text{ConvLSTM}\left(
+\mathbf{v}^{\text{net}}_{l-1,t},
+\mathbf{m}^{\text{net}}_{l,t-1},
+\mathbf{a}^{\text{net}}_{t-1}
+\right), & \text{if } l = L \\
+\\
+\text{ConvLSTM}\left(
+\mathbf{v}^{\text{net}}_{l-1,t},
+\mathbf{m}^{\text{net}}_{l,t-1},
+\mathbf{v}^{\text{net}}_{l+1,t-1}
+\right), & \text{otherwise}
+\end{cases}
+$$
+
+透過上述式子，我們可以將 $v_{2,t-1}^{net}$ 繼續展開如下：
+    
+$v_{2,t-1}^{net}=\text{ConvLSTM}\left(
+\mathbf{v}^{\text{net}}_{1,t-1},
+\mathbf{m}^{\text{net}}_{2,t-2},
+\mathbf{v}^{\text{net}}_{3,t-2}
+\right)$
+
+然後 $\mathbf{v}^{\text{net}}_{3,t-2}$ 以及 $L=3$ 可以展開如下：
+$\mathbf{v}^{\text{net}}_{3,t-2}=\text{ConvLSTM}\left(
+\mathbf{v}^{\text{net}}_{2,t-2},
+\mathbf{m}^{\text{net}}_{3,t-3},
+\mathbf{a}^{\text{net}}_{t-3}
+\right)$
+    
+這再繼續拆解下去會過於複雜，那這邊有看到一個 $\mathbf{a}^{\text{net}}_{t-3}$ 這個參數，這個就是語意系統去影響圖像認知的重要參數。那透過上面式子回去看 $v_{l=1,t}^{net}$，就可以看到 $v_{l=1,t}^{net}$ 是透過之前時間點的訊息來重建現在的圖像感知，然後之前時間點的訊息會包括語意認知那邊來的訊息 (這裡的式子非常重要，我之前有很長的時間誤會語意認知與圖像及本體認知的生成沒有關係，直到我看懂這個式子才清楚了解到語意對於圖像及本體的影響方式)。
+    
+    
+
+
+##### <span style="color:#3366cc"> 關注參數 $\alpha_t^{att}$、仿射參數 $\alpha_t^{M2}$ [用於多個 level]</span>
+
+這兩個是根據本體感知算出來的，式子為
+
+$\alpha_t^{att}=\text{FFN}(m_{l=1,t}^{net})$ 
+
+$\alpha_t^{M2}=\text{FFN}(m_{l=1,t}^{net})$
+
+$\text{FFN}$ 是 fully connected feed-forward 的 network，透過現在第一層的本體感受 $m_{l=1,t}^{net}$ 來 output $a_t^{att}$ 及 $a_t^{M2}$ 來算出 attention 的參數以仿射的參數。
+
+**High level 解釋**
+本體感知有助於視覺理解現在的專注部分，並且幫助投射出較重要的部分。
+
+##### <span style="color:red"> 圖像認知 $\tilde{v}_t$ 小結</span>
+
+$\tilde{v}_t$ 是透過以下步驟生成
+1. 透過現在的關注圖像、上個時間點的本體感覺及上個時間點的第二層視覺感知來給出第一層的視覺感知
+2. 這個第一層的視覺感知會結合過往的 attention 圖像記憶來產生出當前的 attention 視覺認知
+3. 再根據當前的 attention 視覺認知與過往的 attention 還原圖像記憶來產生出當前的視覺認知也就是 $\tilde{v}_t$
+這裡要特別注意，attention 及記憶混和的部分都會有現在這個時間點的本體感覺資訊來幫助圖像感知唷！我自己畫出的 flow 圖如下：
+
+![image](/images/comp_visiual.png)
+
+圖像感知第一層比較接近原始感知，第二層會做一次的抽象化，這裡會用第二層的圖像感知來做這次感知的引導，然後上個時間點的本體感知也會做相應的引導。本體感覺並不會直接 input 進去做整個圖像的生成，而是讓它以參數的方式去參與整個圖像認知的生成。
+
+---
+
+#### <span style="color:#3366cc"> 本體認知 $\tilde{m}_t$ [1-level] </span>
+
+本體認知 $\tilde{m}_t$ 的式子展開如下
+
+$\tilde{m}_t=\text{SoftMax}^{-1}(m_t^{net})$
+
+**數學符號解釋**
+$m_t^{net}$ 是從 LSTM 那邊過來的本體 “感知” （感知和認知不同唷！），$\text{SoftMax}^{-1}$ 會將原本離散概率化的向量轉成角度，會這樣做是因為在這個模型，感知的方式是用 $\text{SoftMax}$ 來將角度變成感知的，因此用 inverse 來得到本體認知角度。
+
+**High level 解釋**
+將本體感知轉換為本體認知（角度）
+
+#### <span style="color:#3366cc"> 本體感知 $m_t^{net}$ [2-level] </span>
+
+$m_t^{net}$ 展開式子如下
+
+$m_t^{net}=\text{FFN}(m_{l=1,t}^{net})$
+
+**數學符號解釋**
+$m_{l=1,t}^{net}$ 是 LSTM 的第一層結果（最靠近原始感知的那一層）加上一個 Fully connected network $\text{FFN}$ 產生出來的。
+
+**High level 解釋**
+從最原始感知來建構出進一步的感知。
+
+##### <span style="color:#3366cc"> 本體原始感知 $m_{l=1,t}^{net}$ [3-level] </span>
+
+$m_{l=1,t}^{net}=\text{LSTM}(m_{0,t}^{net}, v_{1,t-1}^{net}, m_{2,t-1}^{net})$
+
+**數學符號解釋**
+透過本體感覺 $m_{0,t}^{net}$、上個時間點的視覺第一層感知 $v_{1,t-1}^{net}$、上個時間點的本體感知第二層 $m_{2,t-1}^{net}$ 來生成現在的第一層本體感知。語意系統那邊的影響主要是影響 $v_{1,t-1}^{net}$ 及 $m_{2,t-1}^{net}$。
+
+**High level 解釋**
+透過吸收之前的資訊來判斷現在的感知。
+
+##### <span style="color:#3366cc"> 本體感覺 $m_{0,t}^{net}$ [4-level] </span>
+
+$m_{0,t}^{net}$ 的式子展開為
+
+$m_{0,t}^{net}=\text{SoftMax}(m_t)$
+
+**數學符號解釋**
+將本體感覺角度 $m_t$ 透過 $\text{SoftMax}$ 轉換成離散機率。
+
+**High level 解釋**
+將“角度”從連續的數字離散化成機率，除了比較方便做計算外，這跟人類的認知也有關係，人類通常無法知道準確的手臂角度，而是一種大概的感受，所以用 $\text{SoftMax}$ 來 model （但這個是可能的原因，實際上還是要去問有經驗的人）。那在這裡是要將大概的感受轉回“角度”以方便跟實際的“角度”做比對。
+
+##### <span style="color:red"> 本體認知 $\tilde{m}_t$ 小結</span>
+
+我對於本體感知理解的 flow 圖如下：
+
+![image](/images/comp_propreoceptive.png.png)
+
+---
+
+#### <span style="color:#3366cc"> 語意認知 $\tilde{S}$ [1-level] </span>
+
+$\tilde{S}$ 是5個字詞，$\tilde{S}=(\tilde{s}_1,\tilde{s}_2,\tilde{s}_3,\tilde{s}_4,\tilde{s}_5)$，$\tilde{s}_i$ 的式子如下
+
+$\tilde{s}_i=\text{SoftMax}(\text{FFN}(s_i^{net}))$
+
+**數學符號解釋**
+每個 $s_i^{net}$ 是產生出來的語意認知，那每個語意認知會經過 $\text{FFN}$ 的作用後得到對每個詞彙的 score，再用 $\text{SoftMax}$ 來看語詞機率分布，那通常會取機率最高的當作最後的結果。在論文裡，$\tilde{s}_5$ 通常都是 "." 來表是整句話的結束。
+
+##### <span style="color:#3366cc"> 字詞 $s_i^{net}$ [2-level] </span>
+
+$s_i^{net}$ 的式子為
+
+$s_i^{net}=\text{LSTM}(s_{i-1}^{net}, \mathbf{PB})$
+
+主要輸入為用前一個字與特別的 $\mathbf{PB}$ (parametric bias) 來預測下一個位置的字。$s_{0}^{net}$ 把它當作空字符吧！再來最複雜的就是這個 $\mathbf{PB}$ 了，它是由 associative network 那層產生的 output！
+
+##### <span style="color:#3366cc"> Parametric bias $\text{PB}$ [3-level]</span>
+
+$\text{PB}$ 這是拿來計算出 $\tilde{S}$ 的主要參數，那對我來說我一直疑惑的就是 $\text{PB}$ 是怎麼算出來的？這邊我卡住很久，最後才領悟到他是用第二次的 loss function 迭代去算出來的，那要計算那個 loss function 就需要一個 $\tilde{PB}_t$ 序列，它是在視覺及本體認知序列產生時一起產生出來的序列。
+
+$\tilde{\mathbf{PB}}_t$ 的展開為
+
+$\tilde{\mathbf{PB}}_t=\tanh(W_{d,pb}d_t)$
+
+**數學符號解釋**
+這裡把 $W_{d,pb}$ 當作從一個大的 weight matrix $W$ 取 $d$ 及 $\text{PB}$ 相關的部分就好。$d_t$ 是一個對於現階段的認知狀態，透過這個認知狀態讓 $\tilde{PB}_t$ 可以幫助去給出現在的視覺、本體認知狀態。
+
+##### <span style="color:#3366cc"> 現階段認知狀態 $d_t$ [3-level]</span>
+
+$d_t$ 實際的展開如下
+
+$d_t=(1-\frac{1}{\tau})d_{t-1}+\frac{1}{\tau}(W_{a,a}a_{t-1}^{net}+W_{z,a}z_t^q+W_{v_a}v_{l=L,t-1}^{net}+W_{m,a}m_{l=L,t-1}^{net})$
+
+**數學符號解釋**
+我們先分別看兩大項 $d_{t-1}$ 及 $(W_{a,a}a_{t-1}^{net}+W_{z,a}z_t^q+W_{v_a}v_{l=L,t-1}^{net}+W_{m,a}m_{l=L,t-1}^{net})$，$d_{t-1}$ 是前一個時間點的認知狀態，然後另外一大項是當前的觀察。這個式子就是把之前的認知與當前的觀察做一個權重上的調配來形成對現在時間點的認知。$v_{l=L,t-1}^{net}$ 及 $m_{l=L,t-1}^{net}$ 這兩項就是對於圖像認知及本體感知最抽象化最接近語意的那層 output。$z_t^q$ 是一個 latent 的語意意圖來敘說我這整句話想講什麼，然後 $a_{t-1}^{net}$ 是上一個時間點我說了什麼，融合這些後就可以得到對於當前的觀察。
+
+##### <span style="color:#3366cc"> 語意意圖 $z_t^q$ [4-level]</span>
+
+$z_t^q$ 被 model 如下
+
+$$z_t^q=\mu_t^q+\sigma_t^q*\epsilon$$
+
+然後 $\mu_t^q$、$\sigma_t^q$ 會是用 $A$ 去產生，這裡的 $A$ 會跟 $\text{PB}$ 一樣用第二階段的 loss function 算出來
+
+$$\mu_t^q=\tanh(A_t^{\mu})$$
+
+$$\sigma_t^q=\exp(A_t^{\sigma})$$
+
+然後 $a_{t-1}^{net}$ (這個參數會在視覺及本體感知的 $\text{LSTM}$ 最後一層一起納入運算中) 如下
+
+$$a_{t-1}^{net}=\tanh(d_{t-1})$$
+
+那 q 是什麼呢？
+
+$q(z|X)$ 這是一個 posterior，在論文中他不會用 prior + likelihood 去計算 posterior，而是直接將這個模型化成一個 normal distribution with $\mu_t^q=\tanh(A_t^{\mu})$, $\sigma_t^q=\exp(A_t^{\sigma})$
+
+**Remark**
+這裡的 $A_t^{\mu}$ 及 $A_t^{\sigma}$ 是跟 $\text{PB}$ 一樣唷！它是每個 epoch 會做一次更新，這邊也是 high level 理解即可。
+
+---
+
+#### <span style="color:#3366cc"> 第一階段訓練 (learning by minimizing free energy) </span>
+
+目前我都已經了解每個認知是怎麼計算出來的，那現在要來看它第一階段是怎麼訓練的，這裡訓練的目標主要是 network 們，然後不包括 $\text{PB}$ 何 $A$。那這裡訓練用的 Loss function 是 Free Energy 的形式並且要 minimize 它。
+
+第一階段訓練的 loss function，定義如下
+
+$L=L_v+L_m+L_s+L_{\text{pb}}+\mathbf{w}\sum_{t=1}^T D_{KL}(q(z_t|X)||p(z_t))$
+
+**數學符號解釋**
+$L_v$ 是視覺感知的 loss, $L_m$ 是本體感知的 loss, $L_s$ 是語意的 loss $L_{\text{pb}}$ 是 $\text{PB}$ 的 loss。$D_{KL}(q(z_t|X)||p(z_t))$ 是在計算 prior of $z_t$ 及 posterior of $z_t$ given 觀察到的 $X$ 的機率分佈差多少（兩個的模型都是 Gaussian distribution $(\mu,\sigma)$）。這整體滿直覺的，就是要找出最合適的參數們來最小化我們的 $L$。
+
+下面是 $L_v,L_m,L_s,L_{\text{pb}}$ 的展開
+
+$L_v=\sum_{t=1}^T L_{v,t}=\sum_{t=1}^Tc_t^{att}\odot(\hat{v}_t-\tilde{v}_t)^2$
+
+$L_m=\sum_{t=1}^T L_{m,t}=\sum_{t=1}^TD_{KL}(\text{SoftMax}(\hat{m}_t),\text{SoftMax}(\tilde{m}_t))$
+
+$L_s=\sum_{i=1}^5(\hat{s}_i-\tilde{s}_i)^2$ 
+
+$L_{\text{pb}}=k*\sum_{t=1}^T(\tilde{\text{PB}}_t-\text{PB})^2$ 
+
+---
+
+#### <span style="color:#3366cc"> 第二階段訓練 Goal directed planning </span>
+
+Active inference 會 minimize 目標及預測之間的 error by "acting appropriately" on the environment （這可以看另一篇論文，有空再看）；這篇論文說通常 goal-directed planning 是假設目標會在 behavior sequence 的最後一步(distal step)。在這篇論文的模型，他們是用 "teleological approach" (目的論的) 方式來做 (這是另一篇論文提出來的方法)；它的中心思想是“期望的目標”是在每個 time step 都會產生的而非在最後一步，也就是在所有產生的 time step 裡面找出最好的。
+
+這樣的思想就是為何它在每個 epoch 更新 $\text{PB}$、$A$ 的時候不是選擇最後一步的結果，而是選擇其中最好的結果，那它是怎麼選擇最好的結果呢？
+
+那這邊會是用下面的 loss function 來計算出較好的 $\text{PB}$、$A$
+
+$L^g=L_s^g+L_{\text{PB}}^g+\mathbf{w}\sum_{t=1}^TD_{KL}(q(z_t)||p(z_t))$
+
+上面這個 inference 方向是 given lingustic represented goal （語意目標）來推論 visio-prorpoceptive sequences。
+
+**數學符號解釋**
+$L^g_s$ 應該是當時那個 epoch 最後產生出來的 $\tilde{S}$ 來與真實的語意做 Loss 運算，這邊的目標是給一個語句然後去推論出一串 visuo-propreoceptive sequences 並且每一個 epoch 會更新 $A$、$\text{PB}$ 然後再繼續跑 sequences 出來，最後從中選一個最接近語意描述的。
+
+$L^g_{\text{PB}}=k*\sum_{t=1}^T(\tilde{\text{PB}}_t-\text{PB}^g)^2$ 這邊的 $\text{PB}^g$ 一開始是 initial 的 $\text{PB}$, 然後之後會不斷地迭代掉成新的。
+
+推論方向也可以從 ** visuo-propreoceptive sequences 推論 lingustic represented goal**，式子如下：
+
+$L^{g}=L_v^g+L_m^g+L_{\text{PB}}^g+\mathbf{w}\sum_{t=1}^TD_{KL}(q(z_t)||p(z_t))$
+
+那想法也一樣，挑選適當的 $\text{PB}$ 及 $A$ 來給出認知 lingustic goal。
+
+---
+
+# 結論
+他的模型集合了視覺認知、本體認知、語意認知這三種認知，視覺認知及本體認知是有時間序列的兩種認知，透過 associative layer 將視覺及本體認知的認知序列集合起來找出給予語意認知的參數(Parametric Bias $\text{PB}$ 以及 $A$)，以此不但可以由視覺認知、本體認知去得到語意認知，也可以透過語意認知反向幫助產生視覺及本體認知序列。
+
+他們的視覺建模是透過 attention 去建模的，這跟人類在看東西的方式是很像的，人們的確會專注在他想看的，然後在回憶的時候是用專注的圖像去還原整個圖像的，所以有時候在腦中圖像是模糊的，這個建模我很喜歡很有趣。
+
+他們另外有做其他實驗：
+1. **泛化性** 取決於訓練時所見 **任務組合的多樣性**
+2. 消融研究 (Ablation studies) 發現**視覺注意力機制和視覺工作記憶模組**對模型 **準確生成視覺、運動序列以實現目標至關重要**
+
+# 提醒
+- 在視覺感知及本體感知的部分，即便在做 inference 運算的時候，還是會使用 “當下的圖片及當下的本體感知（角度）” 來去跑出 "視覺認知" 及 "本體感知" 喔！！！
+- 所謂的訓練有兩段，第一段是訓練 “先備知識”，第二段是訓練 “知識組合能力”；第一段會是給定 $\text{PB}$ 及正確的視覺感知、本體感知、語意來做訓練，並且將除了 $A$, $\text{PB}$ 這兩個參數以外的參數都固定下來 (LSTM, ConvLSTM, PV-RNN 的參數都固定下來)；第二段就會是根據實驗的兩個方向來作用，方向一的話就會是給一個語句，並且跑完一整個 epoch 的 $1$~$T$ steps 後再來計算新的 $A$ 和 $\text{PB}$，然後弱有 epoch 跑完後，選擇一個 seqeunces 最符合語句的，更新 $A$ 和 $\text{PB}$ 的方式就是上一章節的 Loss function。第二個方向邏輯類似。第二段的這兩個方向就可以用跑出來的結果看機器是否能有 "知識組合能力"。
+
+# 問題集錦
+
+Questions:
+- **[未想出答案] 為何圖像記憶要分成兩個工作區呢？能不能只有一個工作區就好？**
+
+# Ref
+## Main papers
+- [主要論文：Development of Compositionality and Generalization through Interactive Learning of Language and Action of Robots](https://arxiv.org/pdf/2403.19995)
+- [The free-energy principle: a unified brain theory?](https://www.fil.ion.ucl.ac.uk/~karl/NRN.pdf)
+- [The free-energy principle: a rough guide to the brain?](https://www.fil.ion.ucl.ac.uk/~karl/The%20free-energy%20principle%20-%20a%20rough%20guide%20to%20the%20brain.pdf)
+- [Parametric bias 出處：Self-Organization of Behavioral Primitives as Multiple Attractor
+Dynamics: A Robot Experiment](https://www.oist.jp/sites/default/files/2024-03/cnru_ff01.pdf)
+- [論文 Github: FEP-based-model-of-Embodied-Language Public](https://github.com/oist-cnru/FEP-based-model-of-Embodied-Language)
+## Some references
+- [Active Inference in the brain|自由能原则（FEP）概论](https://zhuanlan.zhihu.com/p/462544123)
+- [ConvLSTM簡介 — Convolutional LSTM Network — A Machine Learning Approach for Precipitation Nowcasting](https://xiaosean5408.medium.com/convlstm%E7%B0%A1%E4%BB%8B-convolutional-lstm-network-a-machine-learning-approach-for-precipitation-nowcasting-84fa4541cb46)
+- [最大概似估計(Maximum Likelihood Estimation, MLE)](https://medium.com/qiubingcheng/%E6%9C%80%E5%A4%A7%E6%A6%82%E4%BC%BC%E4%BC%B0%E8%A8%88-maximum-likelihood-estimation-mle-78a281d5f1d)
